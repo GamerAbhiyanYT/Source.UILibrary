@@ -1,4 +1,5 @@
 -- // Services
+local IsDraggingUI = false -- Menandakan apakah UI sedang digeser atau tidak
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
 local UserInputService = game:GetService('UserInputService')
@@ -221,56 +222,6 @@ local Themes = {
 
 -- // Utility Functions
 do
-    function Utility:Tween(Instance, Properties, Duration, ...)
-        local TweenInfo = TweenInfo.new(Duration, ...)
-        TweenService:Create(Instance, TweenInfo, Properties):Play()
-    end
-
-    function Utility:DestroyUI()
-        ChangeTheme = true
-        BreakAllLoops = true
-        writefile('fml.txt', 'true')
-        for Index, Value in next, Ihatethisui do
-            print(Index, Value)
-            Ihatethisui[Index]:Break()
-        end
-        if CoreGui:FindFirstChild(UIName) ~= nil then
-            CoreGui:FindFirstChild(UIName):Destroy()
-        end
-    end
-
-    function Utility:Darken(Color)
-        local H, S, V = Color:ToHSV()
-
-        V = math.clamp(V - 0.03, 0, 1)
-
-        return Color3.fromHSV(H, S, V)
-    end
-
-    function Utility:Lighten(Color)
-        local H, S, V = Color:ToHSV()
-
-        V = math.clamp(V + 0.03, 0, 1)
-
-        return Color3.fromHSV(H, S, V)
-    end
-
-    function Utility:SplitColor(Color)
-        local R, G, B = math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255)
-        return {R, G, B}
-    end
-
-    function Utility:JoinColor(Table)
-        local R, G, B = Table[1], Table[2], Table[3]
-        return Color3.fromRGB(R, G, B)
-    end
-
-    function Utility:ToggleUI()
-        if CoreGui:FindFirstChild(UIName) ~= nil then
-            CoreGui:FindFirstChild(UIName).Enabled = not CoreGui:FindFirstChild(UIName).Enabled
-        end
-    end
-
     function Utility:EnableDragging(Frame)
     local Dragging, DraggingInput, DragStart, StartPosition
 
@@ -285,12 +236,14 @@ do
     Frame.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
             Dragging = true
+            IsDraggingUI = true  -- Tandai bahwa UI sedang digeser
             DragStart = Input.Position
             StartPosition = Frame.Position
 
             Input.Changed:Connect(function()
                 if Input.UserInputState == Enum.UserInputState.End then
                     Dragging = false
+                    IsDraggingUI = false  -- UI tidak lagi digeser
                 end
             end)
         end
@@ -2320,34 +2273,47 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 end
 
                 SliderButton.MouseButton1Down:Connect(function()
+    if IsDraggingUI then return end
                     CurrentValue = (((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue)
                     task.spawn(function()
                         Callback(CurrentValue)
                     end)
                     Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
-                    MoveConnection = Mouse.Move:Connect(function()
-                        SliderNumber.Text = CurrentValue
-                        CurrentValue = math.floor((((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue))
-                        task.spawn(function()
-                            Callback(CurrentValue)
-                        end)
-                        Config[Name] = CurrentValue
-                        Utility:Tween(SliderNumber, {TextColor3 = Color3.new(255, 255, 255)}, 0.25)
-                        Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
-                    end)
-                    ReleaseConnection = UserInputService.InputEnded:Connect(function(Input)
-                        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                            CurrentValue = math.floor((((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue))
-                            task.spawn(function()
-                                Callback(CurrentValue)
-                            end)
-                            Config[Name] = CurrentValue
-                            Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
-                            MoveConnection:Disconnect()
-                            ReleaseConnection:Disconnect()
-                        end
-                    end)
-                end)
+                    SliderButton.MouseButton1Down:Connect(function()
+    if IsDraggingUI then return end -- Jangan aktifkan slider jika UI sedang digeser
+
+    CurrentValue = (((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue)
+    task.spawn(function()
+        Callback(CurrentValue)
+    end)
+    Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
+    
+    MoveConnection = Mouse.Move:Connect(function()
+        if IsDraggingUI then return end -- Cegah slider berubah saat UI sedang digeser
+
+        SliderNumber.Text = CurrentValue
+        CurrentValue = math.floor((((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue))
+        task.spawn(function()
+            Callback(CurrentValue)
+        end)
+        Config[Name] = CurrentValue
+        Utility:Tween(SliderNumber, {TextColor3 = Color3.new(255, 255, 255)}, 0.25)
+        Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
+    end)
+    
+    ReleaseConnection = UserInputService.InputEnded:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            CurrentValue = math.floor((((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue))
+            task.spawn(function()
+                Callback(CurrentValue)
+            end)
+            Config[Name] = CurrentValue
+            Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
+            MoveConnection:Disconnect()
+            ReleaseConnection:Disconnect()
+        end
+    end)
+end)
 
                 SliderHolder.MouseEnter:Connect(function()
                     Hovering = true
