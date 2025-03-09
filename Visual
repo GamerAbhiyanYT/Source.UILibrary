@@ -227,9 +227,10 @@ do
 
     local function Update(Input)
         local Delta = Input.Position - DragStart
-        Frame.Position = UDim2.new(
-            StartPosition.X.Scale, StartPosition.X.Offset + Delta.X,
-        )
+Frame.Position = UDim2.new(
+    StartPosition.X.Scale, StartPosition.X.Offset + Delta.X,  -- Hanya mengubah posisi X
+    StartPosition.Y.Scale, StartPosition.Y.Offset  -- Mengunci posisi Y
+)
     end
 
     Frame.InputBegan:Connect(function(Input)
