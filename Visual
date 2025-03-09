@@ -10,7 +10,6 @@ local HttpService = game:GetService('HttpService')
 
 -- // Variables
 getgenv().kms = false
-local MinX, MaxX = SliderHolder.AbsolutePosition.X, SliderHolder.AbsolutePosition.X + SliderHolder.AbsoluteSize.X
 local Ihatethisui = {}
 local UIName = 'Visual UI Library | .gg/puxxCphTnK'
 local Amount = 0
@@ -226,15 +225,13 @@ do
     function Utility:EnableDragging(Frame)
     local Dragging, DraggingInput, DragStart, StartPosition
 
-local MinX, MaxX = SliderHolder.AbsolutePosition.X, SliderHolder.AbsolutePosition.X + SliderHolder.AbsoluteSize.X
-
     local function Update(Input)
-    if Dragging then
-        local MousePos = Input.Position.X -- Ambil hanya posisi X
-        local SliderPos = math.clamp(MousePos, MinX, MaxX) -- Batasi agar tidak keluar batas
-        Frame.Position = UDim2.new(0, SliderPos, Frame.Position.Y.Scale, Frame.Position.Y.Offset)
+        local Delta = Input.Position - DragStart
+        Frame.Position = UDim2.new(
+            StartPosition.X.Scale, StartPosition.X.Offset + Delta.X,
+            StartPosition.Y.Scale, StartPosition.Y.Offset + Delta.Y
+        )
     end
-end
 
     Frame.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
@@ -259,10 +256,11 @@ end
     end)
 
     UserInputService.InputChanged:Connect(function(Input)
-    if Input == DraggingInput and Dragging then
-        Update(Input) -- Memanggil fungsi Update saat posisi mouse berubah
-    end
-end)
+        if Input == DraggingInput and Dragging then
+            Update(Input)
+        end
+    end)
+end
 
     function Utility:Create(_Instance, Properties, Children)
         local Object = Instance.new(_Instance)
@@ -2275,38 +2273,42 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 end
 
                 SliderButton.MouseButton1Down:Connect(function()
+    if IsDraggingUI then return end
+                    CurrentValue = (((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue)
+                    task.spawn(function()
+                        Callback(CurrentValue)
+                    end)
+                    Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
+                    SliderButton.MouseButton1Down:Connect(function()
     if IsDraggingUI then return end -- Jangan aktifkan slider jika UI sedang digeser
 
-    local MinX, MaxX = SliderHolder.AbsolutePosition.X, SliderHolder.AbsolutePosition.X + SliderHolder.AbsoluteSize.X
-    local MinY, MaxY = SliderHolder.AbsolutePosition.Y, SliderHolder.AbsolutePosition.Y + SliderHolder.AbsoluteSize.Y
-
-    local function Update(Input)
-        local MousePos = Input.Position
-        local NewX = math.clamp(MousePos.X - SliderHolder.AbsolutePosition.X, 0, SliderHolder.AbsoluteSize.X)
-        local NewY = math.clamp(MousePos.Y - SliderHolder.AbsolutePosition.Y, 0, SliderHolder.AbsoluteSize.Y)
-
-        if IsHorizontal then
-            SliderTrail.Size = UDim2.new(0, NewX, 0, 10)  -- Gerakan horizontal
-        else
-            SliderTrail.Size = UDim2.new(0, 10, 0, NewY)  -- Gerakan vertikal
-        end
-
-        CurrentValue = MinimumValue + ((MaximumValue - MinimumValue) * (NewX / SliderHolder.AbsoluteSize.X))
-        SliderNumber.Text = tostring(math.floor(CurrentValue))
+    CurrentValue = (((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue)
+    task.spawn(function()
         Callback(CurrentValue)
-    end
-
-    local MoveConnection
-    local ReleaseConnection
-
-    MoveConnection = UserInputService.InputChanged:Connect(function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseMovement then
-            Update(Input)
-        end
     end)
+    Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
+    
+    MoveConnection = Mouse.Move:Connect(function()
+        if IsDraggingUI then return end -- Cegah slider berubah saat UI sedang digeser
 
+        SliderNumber.Text = CurrentValue
+        CurrentValue = math.floor((((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue))
+        task.spawn(function()
+            Callback(CurrentValue)
+        end)
+        Config[Name] = CurrentValue
+        Utility:Tween(SliderNumber, {TextColor3 = Color3.new(255, 255, 255)}, 0.25)
+        Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
+    end)
+    
     ReleaseConnection = UserInputService.InputEnded:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            CurrentValue = math.floor((((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue))
+            task.spawn(function()
+                Callback(CurrentValue)
+            end)
+            Config[Name] = CurrentValue
+            Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
             MoveConnection:Disconnect()
             ReleaseConnection:Disconnect()
         end
