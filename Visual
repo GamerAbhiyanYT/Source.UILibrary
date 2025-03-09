@@ -8,6 +8,7 @@ local Players = game:GetService('Players')
 local HttpService = game:GetService('HttpService')
 
 -- // Variables
+local IsDraggingUI = false  -- Menandakan apakah UI sedang digeser atau tidak
 getgenv().kms = false
 local Ihatethisui = {}
 local UIName = 'Visual UI Library | .gg/puxxCphTnK'
@@ -271,8 +272,7 @@ do
         end
     end
 
-    
-function Utility:EnableDragging(Frame)
+    function Utility:EnableDragging(Frame)
     local Dragging, DraggingInput, DragStart, StartPosition
 
     local function Update(Input)
@@ -286,12 +286,14 @@ function Utility:EnableDragging(Frame)
     Frame.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
             Dragging = true
+            IsDraggingUI = true  -- Tandai bahwa UI sedang digeser
             DragStart = Input.Position
             StartPosition = Frame.Position
 
             Input.Changed:Connect(function()
                 if Input.UserInputState == Enum.UserInputState.End then
                     Dragging = false
+                    IsDraggingUI = false  -- UI tidak lagi digeser
                 end
             end)
         end
@@ -309,7 +311,6 @@ function Utility:EnableDragging(Frame)
         end
     end)
 end
-
         local Dragging, DraggingInput, DragStart, StartPosition
         
         local function Update(Input)
@@ -2355,12 +2356,14 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 end
 
                 SliderButton.MouseButton1Down:Connect(function()
+    if IsDraggingUI then return end -- Jangan aktifkan slider jika UI sedang digeser
                     CurrentValue = (((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue)
                     task.spawn(function()
                         Callback(CurrentValue)
                     end)
                     Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
                     MoveConnection = Mouse.Move:Connect(function()
+    if IsDraggingUI then return end -- Cegah slider berubah saat UI sedang digeser
                         SliderNumber.Text = CurrentValue
                         CurrentValue = math.floor((((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue))
                         task.spawn(function()
