@@ -1,12 +1,3 @@
-
-
-    -- ... (Fungsi Utility lainnya tetap sama)
-end
-
--- ... (Sisa script tetap sama seperti aslinya hingga akhir)
-
-return Library
-
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
