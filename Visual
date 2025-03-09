@@ -229,7 +229,6 @@ do
         local Delta = Input.Position - DragStart
         Frame.Position = UDim2.new(
             StartPosition.X.Scale, StartPosition.X.Offset + Delta.X,
-            StartPosition.Y.Scale, StartPosition.Y.Offset
         )
     end
 
