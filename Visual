@@ -225,7 +225,7 @@ do
     function Utility:EnableDragging(Frame)
     local Dragging, DraggingInput, DragStart, StartPosition
 
-    local function Update(Input)
+    function Update(Input)
     if Dragging then
         local Delta = Input.Position - DragStart
         Frame.Position = UDim2.new(
